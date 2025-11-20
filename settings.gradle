@@ -1,0 +1,2 @@
+rootProject.name = "find-my-airplane-mode-phone"
+include(":app")

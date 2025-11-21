@@ -1,15 +1,11 @@
 package com.andreasmoe.findmyairplanemodephone;
 
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.*;
+import android.bluetooth.*;
 import android.os.ParcelUuid;
-import java.util.List;
+import java.util.*;
 import android.Manifest;
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -20,14 +16,16 @@ public class MainActivity extends Activity {
     private TextView tv;
     private static final int REQ_CODE_BT_PERMS = 1;
     private BluetoothLeScanner scanner;
+    private List<String> seenAddresses;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         tv = new TextView(this);
-        tv.setTextSize(24);
         setContentView(tv);
+
+        seenAddresses = new ArrayList<String>();
         BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager != null ? manager.getAdapter() : null;
 
@@ -54,13 +52,22 @@ public class MainActivity extends Activity {
                 public void onScanResult(int callbackType, ScanResult result) {
                     String address = result.getDevice().getAddress();
                     ScanRecord record = result.getScanRecord();
-                    int rssi = result.getRssi();
-                    if (address != null && record != null) {
+                    byte[] data = record.getManufacturerSpecificData().get(0x004C);
+                    if (data == null || data.length < 23) {
                         return;
                     }
-                    String advName = record.getDeviceName();
-                    if (advName != null) {
-                        tv.append(address + " " + advName + " " + rssi + " dBm\n");
+                    int major = ((data[18] & 0xFF) << 8) | (data[19] & 0xFF);
+                    int minor = ((data[20] & 0xFF) << 8) | (data[21] & 0xFF);
+                    int txPower = (int) data[22];
+                    if (!seenAddresses.contains(address)) {
+                        tv.append("\nAddress: " + address);
+                        tv.append("\ndata: " + bytesToHex(data));
+                        tv.append("\ndatalength: " + data.length);
+                        tv.append("\nmajor: " + major);
+                        tv.append("\nminor: " + minor);
+                        tv.append("\ntxPower: " + txPower);
+                        tv.append("\n");
+                        seenAddresses.add(address);
                     }
                 }
 
@@ -77,4 +84,14 @@ public class MainActivity extends Activity {
             scanner.stopScan(scanCallback);
         }
     }
+
+    private static String bytesToHex(byte[] data) {
+        if (data == null) return "";
+        StringBuilder sb = new StringBuilder(data.length * 2);
+        for (byte b : data) {
+            sb.append(String.format(Locale.US, "%02X", b));
+        }
+        return sb.toString();
+    }
 }
+

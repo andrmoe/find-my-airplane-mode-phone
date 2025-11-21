@@ -6,9 +6,9 @@ import android.os.ParcelUuid;
 import java.util.*;
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
+import android.content.*;
 import android.content.pm.PackageManager;
-import android.os.Bundle;
+import android.os.*;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        startBackground();
         tv = new TextView(this);
         setContentView(tv);
 
@@ -44,6 +44,11 @@ public class MainActivity extends Activity {
 
         tv.append("Starting BLE scan (devices will appear below)...\n");
         scanner.startScan(scanCallback);
+    }
+
+    private void startBackground() {
+        Intent serviceIntent = new Intent(this, BackgroundService.class);
+        startForegroundService(serviceIntent);
     }
 
     private final ScanCallback scanCallback =
